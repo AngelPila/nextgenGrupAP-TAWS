@@ -8,7 +8,13 @@ const path = require("path");
 const PORT = 3000;
 const server = http.createServer((req, res) => {
   // Serve static files
-  let filePath = "." + req.url;
+  let decodedUrl;
+  try {
+    decodedUrl = decodeURIComponent(req.url);
+  } catch (e) {
+    decodedUrl = req.url;
+  }
+  let filePath = "." + decodedUrl;
   if (filePath === "./") filePath = "./index.html";
   
   const extname = String(path.extname(filePath)).toLowerCase();

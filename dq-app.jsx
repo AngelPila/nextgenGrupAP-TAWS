@@ -1,5 +1,13 @@
 // dq-app.jsx — Main App component + mount
 
+const DEFAULT_PHASE_FOUR_PROGRESS = {
+  step: 0, picks: {}, pickerIdx: 0,
+  xVar: null, yVar: null,
+  votes: {}, voterIdx: 0,
+  analysisAnswers: {}, analysisQIdx: 0,
+  conclusionText: "", approvals: {}, earnedXP: 0,
+};
+
 const DEFAULT_PHASE_THREE_PROGRESS = {
   mission: {
     missionIdx: 0,
@@ -45,9 +53,10 @@ function loadSavedSession() {
       phaseOneTutorialProgress: parsed.phaseOneTutorialProgress || { datasets: false, graficos: false, confirmed: false },
       missionProgress: parsed.missionProgress || { missionIdx: 0 },
       phaseThreeProgress: parsed.phaseThreeProgress || cloneDefaultPhaseThreeProgress(),
+      phaseFourProgress: parsed.phaseFourProgress || { ...DEFAULT_PHASE_FOUR_PROGRESS },
     };
   } catch {
-    return { user: null, screen: "lore", phaseOneTutorialProgress: { datasets: false, graficos: false, confirmed: false }, missionProgress: { missionIdx: 0 }, phaseThreeProgress: cloneDefaultPhaseThreeProgress() };
+    return { user: null, screen: "lore", phaseOneTutorialProgress: { datasets: false, graficos: false, confirmed: false }, missionProgress: { missionIdx: 0 }, phaseThreeProgress: cloneDefaultPhaseThreeProgress(), phaseFourProgress: { ...DEFAULT_PHASE_FOUR_PROGRESS } };
   }
 }
 
@@ -60,6 +69,7 @@ function App() {
   const [phaseOneTutorialProgress, setPhaseOneTutorialProgress] = useState(initialSession.phaseOneTutorialProgress);
   const [missionProgress, setMissionProgress] = useState(initialSession.missionProgress || { missionIdx: 0 });
   const [phaseThreeProgress, setPhaseThreeProgress] = useState(initialSession.phaseThreeProgress || cloneDefaultPhaseThreeProgress());
+  const [phaseFourProgress, setPhaseFourProgress] = useState(initialSession.phaseFourProgress || { ...DEFAULT_PHASE_FOUR_PROGRESS });
   const wsRef = useRef(null);
   const hasLoadedSessionRef = useRef(false);
 
@@ -83,6 +93,7 @@ function App() {
       phaseOneTutorialProgress,
       missionProgress,
       phaseThreeProgress,
+      phaseFourProgress,
     }));
   }, [user, screen, phaseOneTutorialProgress, missionProgress, phaseThreeProgress]);
 
@@ -117,6 +128,7 @@ function App() {
     syncTeamState(updatedTeam);
     setMissionProgress({ missionIdx: 0 });
     setPhaseThreeProgress(cloneDefaultPhaseThreeProgress());
+    setPhaseFourProgress({ ...DEFAULT_PHASE_FOUR_PROGRESS });
     setScreen("mapa");
   };
 
@@ -245,6 +257,10 @@ function App() {
     advanceParticipantPhase(xpEarned);
   };
 
+  const handleCorrelacionesComplete = (xpEarned) => {
+    advanceParticipantPhase(xpEarned);
+  };
+
   const handlePitchComplete = (xpEarned) => {
     advanceParticipantPhase(xpEarned);
   };
@@ -304,6 +320,15 @@ function App() {
               onProgress={(nextProgress) => setPhaseThreeProgress(prev => ({ ...prev, mission: nextProgress }))}
               onComplete={(xp) => handleMissionComplete(xp)}
               onNav={setScreen}
+            />
+          );
+        case "correlaciones":
+          return (
+            <CorrelacionesScreen
+              team={team}
+              initialProgress={phaseFourProgress}
+              onProgress={(p) => setPhaseFourProgress(p)}
+              onComplete={(xp) => handleCorrelacionesComplete(xp)}
             />
           );
         case "pitch":
