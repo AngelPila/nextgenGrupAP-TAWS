@@ -17,6 +17,20 @@ const DEFAULT_PHASE_FOUR_PROGRESS = {
   earnedXP: 0,
 };
 
+const DEFAULT_PHASE_FIVE_PROGRESS = {
+  step: 0,
+  themesProposed: {},
+  themeVotes: {},
+  selectedTheme: null,
+  proposerIdx: 0,
+  voterIdx: 0,
+  xVar: null,
+  yVar: null,
+  findings: {},
+  approvals: {},
+  earnedXP: 0,
+};
+
 const DEFAULT_PHASE_THREE_PROGRESS = {
   mission: {
     missionIdx: 0,
@@ -67,6 +81,10 @@ function cloneDefaultPhaseFourProgress() {
   return { ...DEFAULT_PHASE_FOUR_PROGRESS, picks: {}, votes: {}, analysisAnswers: {}, approvals: {} };
 }
 
+function cloneDefaultPhaseFiveProgress() {
+  return { ...DEFAULT_PHASE_FIVE_PROGRESS, themesProposed: {}, themeVotes: {}, findings: {}, approvals: {} };
+}
+
 function loadSavedSession() {
   try {
     const raw = localStorage.getItem("dq_session_v1");
@@ -81,9 +99,10 @@ function loadSavedSession() {
       phaseTwoProgress: parsed.phaseTwoProgress || cloneDefaultPhaseTwoProgress(),
       phaseThreeProgress: parsed.phaseThreeProgress || cloneDefaultPhaseThreeProgress(),
       phaseFourProgress: parsed.phaseFourProgress || cloneDefaultPhaseFourProgress(),
+      phaseFiveProgress: parsed.phaseFiveProgress || cloneDefaultPhaseFiveProgress(),
     };
   } catch {
-    return { user: null, screen: "lore", phaseOneTutorialProgress: { datasets: false, graficos: false, confirmed: false }, missionProgress: { missionIdx: 0 }, phaseTwoProgress: cloneDefaultPhaseTwoProgress(), phaseThreeProgress: cloneDefaultPhaseThreeProgress(), phaseFourProgress: cloneDefaultPhaseFourProgress() };
+    return { user: null, screen: "lore", phaseOneTutorialProgress: { datasets: false, graficos: false, confirmed: false }, missionProgress: { missionIdx: 0 }, phaseTwoProgress: cloneDefaultPhaseTwoProgress(), phaseThreeProgress: cloneDefaultPhaseThreeProgress(), phaseFourProgress: cloneDefaultPhaseFourProgress(), phaseFiveProgress: cloneDefaultPhaseFiveProgress() };
   }
 }
 
@@ -98,6 +117,7 @@ function App() {
   const [phaseTwoProgress, setPhaseTwoProgress] = useState(initialSession.phaseTwoProgress || cloneDefaultPhaseTwoProgress());
   const [phaseThreeProgress, setPhaseThreeProgress] = useState(initialSession.phaseThreeProgress || cloneDefaultPhaseThreeProgress());
   const [phaseFourProgress, setPhaseFourProgress] = useState(initialSession.phaseFourProgress || cloneDefaultPhaseFourProgress());
+  const [phaseFiveProgress, setPhaseFiveProgress] = useState(initialSession.phaseFiveProgress || cloneDefaultPhaseFiveProgress());
   const wsRef = useRef(null);
   const hasLoadedSessionRef = useRef(false);
 
@@ -112,6 +132,7 @@ function App() {
       setPhaseTwoProgress(initialSession.phaseTwoProgress || cloneDefaultPhaseTwoProgress());
       setPhaseThreeProgress(initialSession.phaseThreeProgress || cloneDefaultPhaseThreeProgress());
       setPhaseFourProgress(initialSession.phaseFourProgress || cloneDefaultPhaseFourProgress());
+      setPhaseFiveProgress(initialSession.phaseFiveProgress || cloneDefaultPhaseFiveProgress());
     }
   }, []);
 
@@ -125,8 +146,9 @@ function App() {
       phaseTwoProgress,
       phaseThreeProgress,
       phaseFourProgress,
+      phaseFiveProgress,
     }));
-  }, [user, screen, phaseOneTutorialProgress, missionProgress, phaseTwoProgress, phaseThreeProgress, phaseFourProgress]);
+  }, [user, screen, phaseOneTutorialProgress, missionProgress, phaseTwoProgress, phaseThreeProgress, phaseFourProgress, phaseFiveProgress]);
 
   useEffect(() => {
     if (!user) {
@@ -161,6 +183,7 @@ function App() {
     setPhaseTwoProgress(cloneDefaultPhaseTwoProgress());
     setPhaseThreeProgress(cloneDefaultPhaseThreeProgress());
     setPhaseFourProgress(cloneDefaultPhaseFourProgress());
+    setPhaseFiveProgress(cloneDefaultPhaseFiveProgress());
     setScreen("mapa");
   };
 
@@ -257,6 +280,7 @@ function App() {
       phaseTwoProgress: cloneDefaultPhaseTwoProgress(),
       phaseThreeProgress: cloneDefaultPhaseThreeProgress(),
       phaseFourProgress: cloneDefaultPhaseFourProgress(),
+      phaseFiveProgress: cloneDefaultPhaseFiveProgress(),
     }));
     
     setScreen("mapa");
@@ -373,7 +397,12 @@ function App() {
           );
         case "pitch":
           return (
-            <PitchBuilderScreen team={team} onComplete={(xp) => handlePitchComplete(xp)} />
+            <ResearchLabScreen
+              team={team}
+              initialProgress={phaseFiveProgress}
+              onProgress={(p) => setPhaseFiveProgress(p)}
+              onComplete={(xp) => handlePitchComplete(xp)}
+            />
           );
         case "leaderboard":
           return <LeaderboardScreen />;
