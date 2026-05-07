@@ -17,10 +17,7 @@ function ResearchLabScreen({ team, initialProgress, onProgress, onComplete }) {
 
   const [step, setStep] = useState(initialProgress?.step ?? 0);
   const [themesProposed, setThemesProposed] = useState(initialProgress?.themesProposed ?? {});
-  const [themeVotes, setThemeVotes] = useState(initialProgress?.themeVotes ?? {});
   const [selectedTheme, setSelectedTheme] = useState(initialProgress?.selectedTheme ?? null);
-  const [proposerIdx, setProposerIdx] = useState(initialProgress?.proposerIdx ?? 0);
-  const [voterIdx, setVoterIdx] = useState(initialProgress?.voterIdx ?? 0);
   const [xVar, setXVar] = useState(initialProgress?.xVar ?? null);
   const [yVar, setYVar] = useState(initialProgress?.yVar ?? null);
   const [findings, setFindings] = useState(initialProgress?.findings ?? {});
@@ -29,8 +26,8 @@ function ResearchLabScreen({ team, initialProgress, onProgress, onComplete }) {
   const [showXPAmount, setShowXPAmount] = useState(null);
 
   useEffect(() => {
-    onProgress?.({ step, themesProposed, themeVotes, selectedTheme, proposerIdx, voterIdx, xVar, yVar, findings, approvals, earnedXP });
-  }, [step, themesProposed, themeVotes, selectedTheme, proposerIdx, voterIdx, xVar, yVar, findings, approvals, earnedXP]);
+    onProgress?.({ step, themesProposed, selectedTheme, xVar, yVar, findings, approvals, earnedXP });
+  }, [step, themesProposed, selectedTheme, xVar, yVar, findings, approvals, earnedXP]);
 
   const giveXP = (amount) => { setEarnedXP(p => p + amount); setShowXPAmount(amount); };
 
@@ -67,16 +64,18 @@ function ResearchLabScreen({ team, initialProgress, onProgress, onComplete }) {
     <div style={{ padding:28, flex:1, overflowY:"auto", display:"flex", flexDirection:"column", gap:20 }}>
       {showXPAmount && <XPPop amount={showXPAmount} onDone={()=>setShowXPAmount(null)} />}
       <div>
-        <Chip label={`Fase 5 · Paso ${proposerIdx+1} de ${mCount}`} color={C.pink} />
+        <Chip label="Fase 5 · Selección de tema" color={C.pink} />
         <h2 style={{ fontSize:22, fontWeight:800, margin:"8px 0 4px" }}>¿Qué tema querés investigar?</h2>
-        <p style={{ color:C.muted, fontSize:14, margin:0 }}>Turno de propuesta: {memberName(proposerIdx)}</p>
+        <p style={{ color:C.muted, fontSize:14, margin:0 }}>El equipo elige un único tema para investigar</p>
       </div>
 
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
         {RESEARCH_THEMES.map(theme => (
           <Card key={theme.id} onClick={() => {
-            setThemesProposed(p => ({ ...p, [proposerIdx]: theme.id })); giveXP(20);
-            if (proposerIdx < mCount - 1) setProposerIdx(proposerIdx+1); else setStep(2);
+            setThemesProposed({ 0: theme.id });
+            setSelectedTheme(theme.id);
+            giveXP(70);
+            setStep(2);
           }} style={{ padding:16, cursor:"pointer" }}>
             <div style={{ fontSize:32, marginBottom:8 }}>{theme.emoji}</div>
             <h3 style={{ fontSize:14, fontWeight:800, margin:"0 0 6px" }}>{theme.title}</h3>
@@ -87,48 +86,9 @@ function ResearchLabScreen({ team, initialProgress, onProgress, onComplete }) {
     </div>
   );
 
-  // Step 2: Vote theme
+
+  // Step 2: Free exploration
   if (step === 2) return (
-    <div style={{ padding:28, flex:1, overflowY:"auto", display:"flex", flexDirection:"column", gap:20 }}>
-      {showXPAmount && <XPPop amount={showXPAmount} onDone={()=>setShowXPAmount(null)} />}
-      <div>
-        <Chip label={`Fase 5 · Votación ${voterIdx+1} de ${mCount}`} color={C.yellow} />
-        <h2 style={{ fontSize:22, fontWeight:800, margin:"8px 0 4px" }}>Voten el tema a investigar</h2>
-        <p style={{ color:C.muted, fontSize:14, margin:0 }}>Turno de voto: {memberName(voterIdx)}</p>
-      </div>
-
-      <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-        {Array.from(new Set(Object.values(themesProposed))).map(themeId => {
-          const theme = RESEARCH_THEMES.find(t=>t.id===themeId);
-          return (
-            <Card key={themeId} onClick={() => {
-              setThemeVotes(p => ({ ...p, [voterIdx]: themeId })); giveXP(15);
-              if (voterIdx < mCount - 1) setVoterIdx(voterIdx+1); else {
-                const votes = Object.values({ ...themeVotes, [voterIdx]: themeId });
-                const tally = votes.reduce((acc,id) => (acc[id]=(acc[id]||0)+1, acc), {});
-                const winning = Object.keys(tally).sort((a,b)=>tally[b]-tally[a])[0];
-                setSelectedTheme(Number(winning)); setStep(3); giveXP(50);
-              }
-            }} style={{ padding:16, cursor:"pointer" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:12, justifyContent:"space-between" }}>
-                <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                  <span style={{ fontSize:32 }}>{theme.emoji}</span>
-                  <div>
-                    <h3 style={{ fontSize:16, fontWeight:800, margin:0 }}>{theme.title}</h3>
-                    <p style={{ margin:0, color:C.muted, fontSize:12 }}>{theme.desc}</p>
-                  </div>
-                </div>
-                <Btn variant="cyan" size="sm">Votar</Btn>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-    </div>
-  );
-
-  // Step 3: Free exploration
-  if (step === 3) return (
     <div style={{ padding:28, flex:1, overflowY:"auto", display:"flex", flexDirection:"column", gap:20 }}>
       {showXPAmount && <XPPop amount={showXPAmount} onDone={()=>setShowXPAmount(null)} />}
       <div>
@@ -191,12 +151,12 @@ function ResearchLabScreen({ team, initialProgress, onProgress, onComplete }) {
         )}
       </Card>
 
-      <Btn onClick={()=>setStep(4)} variant="success">Continuar → Documentar hallazgos</Btn>
+      <Btn onClick={()=>setStep(3)} variant="success">Continuar → Documentar hallazgos</Btn>
     </div>
   );
 
-  // Step 4: Document findings
-  if (step === 4) return (
+  // Step 3: Document findings
+  if (step === 3) return (
     <div style={{ padding:28, flex:1, overflowY:"auto", display:"flex", flexDirection:"column", gap:20 }}>
       {showXPAmount && <XPPop amount={showXPAmount} onDone={()=>setShowXPAmount(null)} />}
       <div>
@@ -237,13 +197,13 @@ function ResearchLabScreen({ team, initialProgress, onProgress, onComplete }) {
         </div>
       </Card>
 
-      <Btn onClick={() => { if (findings.question?.trim() && findings.pattern?.trim() && findings.impact?.trim()) { giveXP(100); setStep(5); } }}
+      <Btn onClick={() => { if (findings.question?.trim() && findings.pattern?.trim() && findings.impact?.trim()) { giveXP(100); setStep(4); } }}
         disabled={!findings.question?.trim() || !findings.pattern?.trim() || !findings.impact?.trim()} variant="success" size="lg">Documentación lista → Validación grupal</Btn>
     </div>
   );
 
-  // Step 5: Approval
-  if (step === 5) return (
+  // Step 4: Approval
+  if (step === 4) return (
     <div style={{ padding:28, flex:1, overflowY:"auto", display:"flex", flexDirection:"column", gap:20 }}>
       {showXPAmount && <XPPop amount={showXPAmount} onDone={()=>setShowXPAmount(null)} />}
       <div>

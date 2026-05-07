@@ -20,10 +20,8 @@ const DEFAULT_PHASE_FOUR_PROGRESS = {
 const DEFAULT_PHASE_FIVE_PROGRESS = {
   step: 0,
   themesProposed: {},
-  themeVotes: {},
   selectedTheme: null,
   proposerIdx: 0,
-  voterIdx: 0,
   xVar: null,
   yVar: null,
   findings: {},
@@ -82,7 +80,7 @@ function cloneDefaultPhaseFourProgress() {
 }
 
 function cloneDefaultPhaseFiveProgress() {
-  return { ...DEFAULT_PHASE_FIVE_PROGRESS, themesProposed: {}, themeVotes: {}, findings: {}, approvals: {} };
+  return { ...DEFAULT_PHASE_FIVE_PROGRESS, themesProposed: {}, findings: {}, approvals: {} };
 }
 
 function loadSavedSession() {
