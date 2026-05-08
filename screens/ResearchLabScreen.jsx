@@ -71,6 +71,41 @@ function ResearchLabScreen({ team, initialProgress, onProgress, onComplete, onNa
 
   const giveXP = (n) => { setEarnedXP(p => p + n); setShowXPAmount(n); };
 
+  const InteractiveScatterChart = ({ data, xKey, yKey, compact = false }) => {
+    const [hoverIdx, setHoverIdx] = useState(null);
+    const valid = data
+      .map(d => ({ ...d, __x: Number(d[xKey]), __y: Number(d[yKey]) }))
+      .filter(d => Number.isFinite(d.__x) && Number.isFinite(d.__y));
+    if (!valid.length) return <div style={{ color:C.muted }}>Sin datos válidos</div>;
+
+    const xs = valid.map(d=>d.__x), ys = valid.map(d=>d.__y);
+    const xMin = Math.min(...xs), xMax = Math.max(...xs), yMin = Math.min(...ys), yMax = Math.max(...ys);
+    const W = compact ? 280 : 420, H = compact ? 140 : 200, pad = compact ? 30 : 40;
+    const px = x => xMax === xMin ? W/2 : pad + (x - xMin)/(xMax - xMin) * (W - 2*pad);
+    const py = y => yMax === yMin ? H/2 : H - pad - (y - yMin)/(yMax - yMin) * (H - 2*pad);
+    const cats = [...new Set(valid.map(d => d.category))];
+    const catColors = [C.purple, C.cyan, C.green, C.yellow, C.red, C.pink, "#F97316", "#3B82F6"];
+
+    return (
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display:"block" }}>
+        <line x1={pad} x2={pad} y1={pad} y2={H-pad} stroke={C.border} strokeWidth={0.5}/>
+        <line x1={pad} x2={W-pad} y1={H-pad} y2={H-pad} stroke={C.border} strokeWidth={0.5}/>
+        {valid.map((d, i) => {
+          const ci = cats.indexOf(d.category);
+          const col = catColors[ci % catColors.length];
+          const isHov = hoverIdx === i;
+          return (
+            <g key={i} style={{ cursor:"pointer" }} onMouseEnter={() => setHoverIdx(i)} onMouseLeave={() => setHoverIdx(null)}>
+              {isHov && <circle cx={px(d.__x)} cy={py(d.__y)} r={compact ? 10 : 14} fill={col} opacity={0.12}/>}
+              <circle cx={px(d.__x)} cy={py(d.__y)} r={isHov ? (compact ? 5 : 7) : (compact ? 3.5 : 5)} fill={col} opacity={0.85} style={{ transition:"r 0.12s" }}/>
+              {isHov && <text x={px(d.__x)+8} y={py(d.__y)-8} fill={C.text} fontSize={compact ? 8 : 10} fontFamily="Space Grotesk" fontWeight={700}>{d.channel.slice(0, compact ? 12 : 18)}</text>}
+            </g>
+          );
+        })}
+      </svg>
+    );
+  };
+
   const renderEvidencePreview = (ev, compact = false) => {
     const previewStyle = {
       width: '100%',
@@ -87,7 +122,7 @@ function ResearchLabScreen({ team, initialProgress, onProgress, onComplete, onNa
 
     if (ev.type === 'scatter') {
       if (!ev.xKey || !ev.yKey) return <div style={{ color:C.muted }}>Faltan ejes para el scatter</div>;
-      return <div style={previewStyle}><ScatterChart data={YT_DATA} xKey={ev.xKey} yKey={ev.yKey} /></div>;
+      return <div style={previewStyle}><InteractiveScatterChart data={YT_DATA} xKey={ev.xKey} yKey={ev.yKey} compact={compact} /></div>;
     }
 
     if (ev.type === 'bar') {
@@ -305,10 +340,10 @@ function ResearchLabScreen({ team, initialProgress, onProgress, onComplete, onNa
             <div style={{ marginTop:12 }}>
               <div style={{ fontSize:12, color:C.muted, marginBottom:6 }}>Gráfico principal (ampliado)</div>
               <div style={{ border:`1px solid ${C.border}`, borderRadius:10, padding:12, minHeight:360 }}>
-                <ScatterChart data={YT_DATA} xKey={xVar} yKey={yVar} showLabels={true} style={{ width:'100%', height:340 }} />
+                <InteractiveScatterChart data={YT_DATA} xKey={xVar} yKey={yVar} compact={false} />
               </div>
               <div style={{ marginTop:10, fontSize:13, color:C.muted }}>
-                ¿Qué buscar en el gráfico? Busquen tendencias (sube/ baja), outliers, agrupamientos y relaciones fuertes entre X e Y. Anoten 2–3 observaciones claras.
+                ¿Qué buscar en el gráfico? Busquen tendencias (sube/ baja), outliers, agrupamientos y relaciones fuertes entre X e Y. Anoten 2–3 observaciones claras. Pasa el cursor sobre los puntos para ver el nombre del canal.
               </div>
             </div>
           </Card>
@@ -535,7 +570,7 @@ function ResearchLabScreen({ team, initialProgress, onProgress, onComplete, onNa
                           <div key={ei} style={{ width:180, border:`1px solid ${C.border}`, borderRadius:8, padding:8, background:C.surface }}>
                             <div style={{ fontSize:11, color:C.muted, marginBottom:6 }}>{ev.type.toUpperCase()}</div>
                             <div style={{ width:'100%', height:90, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                              {ev.type === 'scatter' ? <ScatterChart data={YT_DATA} xKey={ev.xKey||xVar} yKey={ev.yKey||yVar} small /> : <div style={{ color:C.muted }}>Vista</div>}
+                              {renderEvidencePreview(ev, true)}
                             </div>
                           </div>
                         ))}
