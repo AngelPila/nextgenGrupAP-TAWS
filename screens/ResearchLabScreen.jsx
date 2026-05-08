@@ -61,12 +61,13 @@ function ResearchLabScreen({ team, initialProgress, onProgress, onComplete, onNa
   const [earnedXP, setEarnedXP] = useState(initialProgress?.earnedXP ?? 0);
   const [showXPAmount, setShowXPAmount] = useState(null);
   const [showFullTable, setShowFullTable] = useState(false);
+  const [submitted, setSubmitted] = useState(initialProgress?.submitted ?? false);
 
   useEffect(() => {
     if (!viewOnly) {
-      onProgress?.({ step, selectedTheme, xVar, yVar, slides, generatedCharts, earnedXP });
+      onProgress?.({ step, selectedTheme, xVar, yVar, slides, generatedCharts, earnedXP, submitted });
     }
-  }, [step, selectedTheme, xVar, yVar, slides, generatedCharts, earnedXP, viewOnly]);
+  }, [step, selectedTheme, xVar, yVar, slides, generatedCharts, earnedXP, submitted, viewOnly]);
 
   const giveXP = (n) => { setEarnedXP(p => p + n); setShowXPAmount(n); };
 
@@ -98,7 +99,22 @@ function ResearchLabScreen({ team, initialProgress, onProgress, onComplete, onNa
       evidenceCount: generatedCharts.length,
     };
     giveXP(slideScore);
-    onComplete?.({ xp: totalXP, pitchSummary });
+    setSubmitted(true);
+    onProgress?.({ step, selectedTheme, xVar, yVar, slides, generatedCharts, earnedXP: totalXP, submitted: true });
+    onComplete?.({
+      xp: totalXP,
+      pitchSummary,
+      phaseFiveProgress: {
+        step,
+        selectedTheme,
+        xVar,
+        yVar,
+        slides,
+        generatedCharts,
+        earnedXP: totalXP,
+        submitted: true,
+      },
+    });
   };
 
   // STEP 0: Intro
@@ -117,7 +133,6 @@ function ResearchLabScreen({ team, initialProgress, onProgress, onComplete, onNa
           </div>
           <div style={{ display:"flex", gap:10, marginTop:18 }}>
             <Btn variant="primary" onClick={()=>setStep(1)}>Empezar →</Btn>
-            <Btn variant="ghost" onClick={()=>{ setSlides([{ title:'Introducción', bullets:['Contexto'], evidence:[] }, { title:'Hallazgo', bullets:['Punto clave'], evidence:[] }, { title:'Impacto', bullets:['Qué hacemos con esto'], evidence:[] }]); setStep(2); }}>Plantilla rápida</Btn>
           </div>
         </Card>
       </div>
@@ -181,6 +196,11 @@ function ResearchLabScreen({ team, initialProgress, onProgress, onComplete, onNa
           <h2 style={{ margin:6, fontWeight:800 }}>Sigan los pasos: hipótesis → evidencia → síntesis</h2>
           <div style={{ color:C.muted }}>No adivinen: aquí les proponemos qué comprobar y cómo capturarlo para la presentación.</div>
         </div>
+        {submitted && (
+          <div style={{ display:'flex', justifyContent:'flex-end' }}>
+            <Btn variant='ghost' onClick={()=>onNav && onNav('resumen')}>↩ Volver al resumen</Btn>
+          </div>
+        )}
         <div>
           <div style={{ color:C.muted, fontSize:13 }}>Variables (para scatter):</div>
           <div style={{ display:'flex', gap:8, marginTop:6 }}>
@@ -327,7 +347,7 @@ function ResearchLabScreen({ team, initialProgress, onProgress, onComplete, onNa
           <h2 style={{ margin:6, fontWeight:800 }}>Vista previa de la presentación</h2>
           <div style={{ color:C.muted, fontSize:13 }}>Esta vista es solo lectura. Sirve para revisar el contenido ya preparado sin editarlo ni reenviarlo.</div>
         </div>
-        <Btn variant='ghost' onClick={()=>onNav && onNav('resumen')}>↩ Volver al resumen</Btn>
+        {submitted && <Btn variant='ghost' onClick={()=>onNav && onNav('resumen')}>↩ Volver al resumen</Btn>}
       </div>
 
       <div style={{ display:'grid', gridTemplateColumns:'1fr 420px', gap:12 }}>
@@ -387,12 +407,12 @@ function ResearchLabScreen({ team, initialProgress, onProgress, onComplete, onNa
                 </div>
               </div>
             </div>
-            <div style={{ display:'flex', justifyContent:'space-between', marginTop:10 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', marginTop:10 }}>
               <div style={{ display:'flex', gap:8 }}>
                 <Btn size='sm' variant='ghost' onClick={()=>setCurrentSlide(s => Math.max(0, s-1))}>←</Btn>
                 <Btn size='sm' variant='ghost' onClick={()=>setCurrentSlide(s => Math.min(slides.length-1, s+1))}>→</Btn>
               </div>
-              <Btn variant='ghost' onClick={()=>onNav && onNav('resumen')}>↩ Resumen</Btn>
+              {submitted && <Btn variant='ghost' onClick={()=>onNav && onNav('resumen')}>↩ Volver al resumen</Btn>}
             </div>
           </Card>
         </div>
@@ -410,7 +430,6 @@ function ResearchLabScreen({ team, initialProgress, onProgress, onComplete, onNa
           <div style={{ color:C.muted, fontSize:13 }}>Cada módulo tiene un título, bullets y evidencias. Usen una plantilla para comenzar rápido.</div>
         </div>
         <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-          <Btn variant='ghost' onClick={()=>onNav && onNav('resumen')}>↩ Volver al resumen</Btn>
           <select onChange={e=> applyTemplate(e.target.value)} style={{ padding:8, background:C.surface, border:`1px solid ${C.border}` }}>
             <option value=''>Aplicar plantilla...</option>
             {TEMPLATES.map(t=> <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -525,8 +544,8 @@ function ResearchLabScreen({ team, initialProgress, onProgress, onComplete, onNa
           </div>
           <div style={{ display:'flex', gap:8 }}>
             <Btn variant='secondary' onClick={()=>setStep(3)}>← Editar</Btn>
-            <Btn variant='ghost' onClick={()=>onNav && onNav('resumen')}>↩ Resumen</Btn>
-            <Btn variant='primary' onClick={()=>{ completeAndSubmit(); }}>Enviar pitch y completar fase</Btn>
+            {!submitted && <Btn variant='primary' onClick={()=>{ completeAndSubmit(); }}>Enviar pitch</Btn>}
+            {submitted && <Btn variant='ghost' onClick={()=>onNav && onNav('resumen')}>↩ Volver al resumen</Btn>}
           </div>
         </div>
       </Card>
