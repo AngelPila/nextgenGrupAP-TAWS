@@ -447,9 +447,11 @@ function Timer({ totalSeconds, onEnd, running=true }) {
 // ═══════════════════════════════════════════
 
 function BarChart({ data, xKey, yKey, color=C.purple }) {
-  const numericData = data.filter(d => d[yKey] !== undefined && !isNaN(d[yKey]));
+  const numericData = data
+    .map(d => ({ ...d, __y: Number(d[yKey]) }))
+    .filter(d => Number.isFinite(d.__y));
   if (!numericData.length) return null;
-  const max = Math.max(...numericData.map(d=>d[yKey]));
+  const max = Math.max(...numericData.map(d=>d.__y));
   const W=520, H=260, pL=48, pB=52, pT=16, pR=12;
   const bW = Math.min(36, (W-pL-pR)/numericData.length - 6);
   const slot = (W-pL-pR)/numericData.length;
@@ -464,7 +466,7 @@ function BarChart({ data, xKey, yKey, color=C.purple }) {
       })}
       {numericData.map((d,i)=>{
         const x = pL + slot*i + slot/2;
-        const barH = max>0 ? ((d[yKey]||0)/max)*(H-pT-pB) : 0;
+        const barH = max>0 ? (d.__y / max) * (H-pT-pB) : 0;
         const y = H-pB-barH;
         return <g key={i} style={{ animation:`barGrow 0.5s ${i*0.05}s both` }}>
           <rect x={x-bW/2} y={y} width={bW} height={barH} fill={color} rx={4} opacity={0.85}/>
@@ -480,9 +482,11 @@ function BarChart({ data, xKey, yKey, color=C.purple }) {
 }
 
 function ScatterChart({ data, xKey, yKey }) {
-  const valid = data.filter(d => !isNaN(d[xKey]) && !isNaN(d[yKey]));
+  const valid = data
+    .map(d => ({ ...d, __x: Number(d[xKey]), __y: Number(d[yKey]) }))
+    .filter(d => Number.isFinite(d.__x) && Number.isFinite(d.__y));
   if (!valid.length) return null;
-  const xs = valid.map(d=>d[xKey]), ys = valid.map(d=>d[yKey]);
+  const xs = valid.map(d=>d.__x), ys = valid.map(d=>d.__y);
   const xMin=Math.min(...xs),xMax=Math.max(...xs),yMin=Math.min(...ys),yMax=Math.max(...ys);
   const W=520,H=260,pad=50;
   const px = x => xMax===xMin ? W/2 : pad+(x-xMin)/(xMax-xMin)*(W-2*pad);
@@ -509,9 +513,9 @@ function ScatterChart({ data, xKey, yKey }) {
         const ci = cats.indexOf(d.category);
         const col = catColors[ci%catColors.length];
         return <g key={i} style={{ animation:`dotPop 0.4s ${i*0.04}s both` }}>
-          <circle cx={px(d[xKey])} cy={py(d[yKey])} r={6} fill={col} opacity={0.85}/>
-          <circle cx={px(d[xKey])} cy={py(d[yKey])} r={6} fill="none" stroke={col} strokeWidth={1} opacity={0.3}/>
-          <text x={px(d[xKey])+8} y={py(d[yKey])+4} fill={C.text} fontSize={9} fontFamily="Space Grotesk" style={{ pointerEvents:"none" }}>{String(d.channel).slice(0,18)}</text>
+          <circle cx={px(d.__x)} cy={py(d.__y)} r={6} fill={col} opacity={0.85}/>
+          <circle cx={px(d.__x)} cy={py(d.__y)} r={6} fill="none" stroke={col} strokeWidth={1} opacity={0.3}/>
+          <text x={px(d.__x)+8} y={py(d.__y)+4} fill={C.text} fontSize={9} fontFamily="Space Grotesk" style={{ pointerEvents:"none" }}>{String(d.channel).slice(0,18)}</text>
         </g>;
       })}
       <line x1={pad} x2={pad} y1={pad} y2={H-pad} stroke={C.border} strokeWidth={1}/>
@@ -524,7 +528,11 @@ function ScatterChart({ data, xKey, yKey }) {
 
 function PieChart({ data, groupKey, valueKey }) {
   const groups = {};
-  data.forEach(d => { const k=d[groupKey]||"Otro"; groups[k]=(groups[k]||0)+(d[valueKey]||0); });
+  data.forEach(d => {
+    const k = d[groupKey] || "Otro";
+    const numericValue = valueKey ? Number(d[valueKey]) : 1;
+    groups[k] = (groups[k] || 0) + (Number.isFinite(numericValue) ? numericValue : 1);
+  });
   const entries = Object.entries(groups).sort((a,b)=>b[1]-a[1]).slice(0,7);
   const total = entries.reduce((s,[,v])=>s+v,0);
   const colors = [C.purple,C.cyan,C.green,C.yellow,C.red,C.pink,"#F97316"];
@@ -564,13 +572,17 @@ function PieChart({ data, groupKey, valueKey }) {
 }
 
 function LineChart({ data, xKey, yKey, color=C.cyan }) {
-  const sorted = [...data].sort((a,b)=>a[xKey]-b[xKey]);
-  const xs=sorted.map(d=>d[xKey]), ys=sorted.map(d=>d[yKey]);
+  const sorted = [...data]
+    .map(d => ({ ...d, __x: Number(d[xKey]), __y: Number(d[yKey]) }))
+    .filter(d => Number.isFinite(d.__x) && Number.isFinite(d.__y))
+    .sort((a,b)=>a.__x-b.__x);
+  if (!sorted.length) return null;
+  const xs=sorted.map(d=>d.__x), ys=sorted.map(d=>d.__y);
   const xMin=Math.min(...xs),xMax=Math.max(...xs),yMin=Math.min(...ys),yMax=Math.max(...ys);
   const W=520,H=260,pL=50,pB=52,pT=16,pR=12;
   const px = x => pL+(x-xMin)/(xMax-xMin||1)*(W-pL-pR);
   const py = y => pT+(H-pT-pB)*(1-(y-yMin)/(yMax-yMin||1));
-  const pts = sorted.map(d=>`${px(d[xKey])},${py(d[yKey])}`).join(" ");
+  const pts = sorted.map(d=>`${px(d.__x)},${py(d.__y)}`).join(" ");
   const fillPts = `${pL},${H-pB} ${pts} ${px(xs[xs.length-1])},${H-pB}`;
   return (
     <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display:"block" }}>
@@ -590,7 +602,7 @@ function LineChart({ data, xKey, yKey, color=C.cyan }) {
       <polygon points={fillPts} fill="url(#lg1)"/>
       <polyline points={pts} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round"/>
       {sorted.map((d,i)=>(
-        <circle key={i} cx={px(d[xKey])} cy={py(d[yKey])} r={4} fill={color} stroke={C.card} strokeWidth={2}/>
+        <circle key={i} cx={px(d.__x)} cy={py(d.__y)} r={4} fill={color} stroke={C.card} strokeWidth={2}/>
       ))}
       <line x1={pL} x2={pL} y1={pT} y2={H-pB} stroke={C.border} strokeWidth={1}/>
       <line x1={pL} x2={W-pR} y1={H-pB} y2={H-pB} stroke={C.border} strokeWidth={1}/>

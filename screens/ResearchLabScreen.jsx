@@ -71,6 +71,47 @@ function ResearchLabScreen({ team, initialProgress, onProgress, onComplete, onNa
 
   const giveXP = (n) => { setEarnedXP(p => p + n); setShowXPAmount(n); };
 
+  const renderEvidencePreview = (ev, compact = false) => {
+    const previewStyle = {
+      width: '100%',
+      height: compact ? 90 : 120,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+      padding: compact ? 4 : 0,
+      boxSizing: 'border-box',
+    };
+
+    if (!ev) return <div style={{ color:C.muted }}>Vista previa no disponible</div>;
+
+    if (ev.type === 'scatter') {
+      if (!ev.xKey || !ev.yKey) return <div style={{ color:C.muted }}>Faltan ejes para el scatter</div>;
+      return <div style={previewStyle}><ScatterChart data={YT_DATA} xKey={ev.xKey} yKey={ev.yKey} /></div>;
+    }
+
+    if (ev.type === 'bar') {
+      const metricKey = ev.key || 'views';
+      const top = ev.top || 10;
+      const barData = [...YT_DATA]
+        .sort((a, b) => Number(b[metricKey]) - Number(a[metricKey]))
+        .slice(0, top);
+      return <div style={previewStyle}><BarChart data={barData} xKey="channel" yKey={metricKey} color={C.purple} /></div>;
+    }
+
+    if (ev.type === 'pie') {
+      return <div style={previewStyle}><PieChart data={YT_DATA} groupKey={ev.key || 'category'} /></div>;
+    }
+
+    if (ev.type === 'line') {
+      if (!ev.xKey || !ev.yKey) return <div style={{ color:C.muted }}>Faltan ejes para la línea</div>;
+      const lineData = YT_DATA.filter(d => Number.isFinite(Number(d[ev.xKey])) && Number.isFinite(Number(d[ev.yKey])));
+      return <div style={previewStyle}><LineChart data={lineData} xKey={ev.xKey} yKey={ev.yKey} color={C.cyan} /></div>;
+    }
+
+    return <div style={{ color:C.muted }}>Vista previa no disponible</div>;
+  };
+
   // NOTE: removed timed rehearsal — practice is untimed
 
   const addSlide = () => {
@@ -315,7 +356,7 @@ function ResearchLabScreen({ team, initialProgress, onProgress, onComplete, onNa
                   {g.desc && <div style={{ fontSize:12, color:C.muted, marginTop:6 }}>{g.desc}</div>}
                   <div style={{ marginTop:8 }}>
                     <div style={{ width:'100%', height:120, border:`1px solid ${C.border}`, borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                      {g.type === 'scatter' ? <ScatterChart data={YT_DATA} xKey={g.xKey||xVar} yKey={g.yKey||yVar} small /> : <div style={{ color:C.muted }}>Vista previa</div>}
+                      {renderEvidencePreview(g, true)}
                     </div>
                     <div style={{ display:'flex', gap:8, marginTop:8 }}>
                       <select onChange={e=> { const slideIdx = parseInt(e.target.value); if(!isNaN(slideIdx)) { updateSlide(slideIdx, { evidence: [...(slides[slideIdx].evidence||[]), g] }); } }}>
@@ -370,7 +411,7 @@ function ResearchLabScreen({ team, initialProgress, onProgress, onComplete, onNa
                     (sl.evidence||[]).map((ev,ei) => (
                       <div key={ei} style={{ display:'flex', alignItems:'center', gap:8, marginTop:8 }}>
                         <div style={{ width:120, height:64, border:`1px solid ${C.border}`, borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                          {ev.type === 'scatter' ? <ScatterChart data={YT_DATA} xKey={ev.xKey||xVar} yKey={ev.yKey||yVar} small /> : <div style={{ color:C.muted }}>Preview</div>}
+                          {renderEvidencePreview(ev, true)}
                         </div>
                         <div style={{ flex:1 }}>{ev.type.toUpperCase()} {ev.key||''} {ev.xKey?`· ${ev.xKey} vs ${ev.yKey}`:''}</div>
                       </div>
@@ -400,7 +441,7 @@ function ResearchLabScreen({ team, initialProgress, onProgress, onComplete, onNa
                     <div key={ei} style={{ width:180, border:`1px solid ${C.border}`, borderRadius:8, padding:8, background:C.surface }}>
                       <div style={{ fontSize:11, color:C.muted, marginBottom:6 }}>{ev.type.toUpperCase()}</div>
                       <div style={{ width:'100%', height:90, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                        {ev.type === 'scatter' ? <ScatterChart data={YT_DATA} xKey={ev.xKey||xVar} yKey={ev.yKey||yVar} small /> : <div style={{ color:C.muted }}>Vista</div>}
+                        {renderEvidencePreview(ev, true)}
                       </div>
                     </div>
                   ))}
@@ -464,7 +505,7 @@ function ResearchLabScreen({ team, initialProgress, onProgress, onComplete, onNa
                   {(sl.evidence||[]).map((ev,ei) => (
                     <div key={ei} style={{ display:'flex', alignItems:'center', gap:8, marginTop:8 }}>
                       <div style={{ width:120, height:64, border:`1px solid ${C.border}`, borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                        {ev.type === 'scatter' ? <ScatterChart data={YT_DATA} xKey={ev.xKey||xVar} yKey={ev.yKey||yVar} small /> : <div style={{ color:C.muted }}>Preview</div>}
+                        {renderEvidencePreview(ev, true)}
                       </div>
                       <div style={{ flex:1 }}>{ev.type.toUpperCase()} {ev.key||''} {ev.xKey?`· ${ev.xKey} vs ${ev.yKey}`:''}</div>
                       <Btn size='sm' variant='ghost' onClick={()=> { const copy = [...(sl.evidence||[])]; copy.splice(ei,1); updateSlide(i,{ evidence: copy }); }}>Quitar</Btn>
